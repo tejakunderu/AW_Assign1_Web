@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css">
     <style>
-        body         { padding-top:80px; word-wrap:break-word; }
+        body         { word-wrap:break-word; }
     </style>
 </head>
 <body>
@@ -16,7 +16,7 @@
         <h1><span class="fa fa-anchor"></span> Profile Page</h1>
         <div class="row">
             <div class="col-xs-6">
-                <a href="https://stackoverflow.com/questions/tagged/java?sort=frequent&pageSize=15" class="btn btn-primary">Stack Overflow</a>
+                <a href="https://stackoverflow.com/questions/tagged/java?sort=frequent&pageSize=15" target="_blank" class="btn btn-primary">Stack Overflow</a>
             </div>
             <div class="col-xs-6">
                 <a href="/logout" class="btn btn-warning btn-sm">Logout</a>
@@ -26,16 +26,61 @@
 
     <div class="well">
         <h3><span class="fa fa-user"></span> User Info</h3>
-        <p>
-            <strong>Email / Username</strong>: <%= user.local.email %><br>
-            <strong>Activity</strong>:
-						<ul>
-							<% user.local.loginHistory.forEach(function(log) { %>
-								<li><%= log %></li>
-							<% }); %>
-						</ul>
-        </p>
-        <a href="/remove" class="btn btn-danger">Remove Profile</a>
+        <strong>Email / Username</strong>: <%= user.local.email %><br>
+        <div class="row">
+            <div class="col-xs-6">
+                <p>
+                    <strong>Activity</strong>:
+                    <ul style="height: auto; max-height: 500px; overflow-x: hidden">
+                      <% user.local.loginHistory.forEach(function(log) { %>
+                        <li><%= log %></li>
+                      <% }); %>
+                    </ul>
+                </p>
+                <a href="/remove" class="btn btn-danger">Remove Profile</a>
+            </div>
+            <div class="col-xs-6">
+                <p>
+                    <strong>User Actions</strong>:
+                    <ul style="height: auto; max-height: 500px; overflow-x: hidden">
+                      <% user.local.actions.forEach(function(log) { %>
+                        <li><%- log %></li>
+                      <% }); %>
+                    </ul>
+                </p>
+                <a href="/profile" class="btn btn-info">Reload Actions</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="well">
+        <strong>Reasons for User Action Selection</strong>:
+        <ol>
+            <li>
+                <strong>Questions Clicked</strong>:
+                These could be used to identify the types of questions the user might be interested in.
+            </li>
+            <li>
+                <strong>Tags Clicked</strong>:
+                These can help us identify broader collections of questions / specific topics that the user might be interested in.
+            </li>
+            <li>
+                <strong>Questions Starred / Un-starred</strong>:
+                These can give us further and a much stronger indication of the user's interest in a paticular question / topic.
+            </li>
+            <li>
+                <strong>Content Shared</strong>:
+                The content shared by the user is another strong indicator of interest and could be used to suggest similar content.
+            </li>
+            <li>
+                <strong>UpVotes and DownVotes</strong>:
+                These can help us determine the user's activity levels and also the performance of the content presented on our site.
+            </li>
+            <li>
+                <strong>Scrolling</strong>:
+                This can help us analyze the user's behaviour by logging how long and how deep the user is scrolling.
+            </li>
+        </ol>
     </div>
 
 </div>

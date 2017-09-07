@@ -16,7 +16,6 @@ module.exports = function(app, passport) {
         res.render('profile.ejs', {
             user : req.user
         });
-        console.log(req.body);
     });
 
     app.get('/logout', function(req, res) {
@@ -58,12 +57,24 @@ module.exports = function(app, passport) {
             user.local.email = undefined;
             user.local.password = undefined;
             user.local.loginHistory = undefined;
+            user.local.actions = undefined;
             user.save(function(err) {
                 res.redirect('/logout');
             });
         } else {
             res.redirect('/login');
         }
+    });
+
+    app.post('/logAction', function(req, res) {
+        if(req.user) {
+            var user = req.user;
+            if (req.body) {
+                user.local.actions.push(logActions(req.body));
+            }
+            user.save();
+        }
+        res.status(200).send();
     });
 
 };
@@ -80,5 +91,41 @@ function inSession(req, res, next) {
         res.redirect('/profile');
     } else {
         return next();
+    }
+}
+
+function logActions(action) {
+    var datetime = new Date().today() + " @ " + new Date().timeNow() + "<br>";
+    switch (action["type"]) {
+        case "question_click":
+            return datetime + "Clicked on question: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "tag_click":
+            return datetime + "Clicked on tag: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "star":
+            return datetime + "Starred question: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "unstar":
+            return datetime + "Un-starred question: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "share_question":
+            return datetime + "Shared question: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "share_answer":
+            return datetime + "Shared answer: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "upvote_on_question":
+            return datetime + "Upvoted question: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "upvote_off_question":
+            return datetime + "Un-voted question: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "upvote_on_answer":
+            return datetime + "Upvoted answer: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "upvote_off_answer":
+            return datetime + "Un-voted answer: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "downvote_on_question":
+            return datetime + "Downvoted question: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "downvote_off_question":
+            return datetime + "Un-voted question: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "downvote_on_answer":
+            return datetime + "Downvoted answer: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "downvote_off_answer":
+            return datetime + "Un-voted answer: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
+        case "scroll":
+            return datetime + "Scrolled on: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
     }
 }
