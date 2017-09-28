@@ -2,21 +2,67 @@
 <html>
 <head>
     <title>Behavior Logging Service</title>
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="/font-awesome/font-awesome.min.css">
     <style>
         body {
-            word-wrap:break-word;
+            word-wrap: break-word;
         }
+
         .axis .domain {
             display: none;
         }
+
+        .requiredField {
+            color: red;
+        }
+
         #start_date_container, #end_date_container {
             padding-left: 50px;
         }
+
+        #update_graphs {
+            margin-top: 23px;
+        }
+
+        .bar:hover {
+            fill: orangered ;
+        }
+
+        .bubble:hover {
+            fill: orangered ;
+        }
+
+        .d3-tip {
+            line-height: 1;
+            font-weight: bold;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border-radius: 2px;
+        }
+
+        .d3-tip:after {
+            box-sizing: border-box;
+            display: inline;
+            font-size: 10px;
+            width: 100%;
+            line-height: 1;
+            color: rgba(0, 0, 0, 0.8);
+            content: "\25BC";
+            position: absolute;
+            text-align: center;
+        }
+
+        .d3-tip.n:after {
+            margin: -1px 0 0 0;
+            top: 100%;
+            left: 0;
+        }
     </style>
-    <script src="https://d3js.org/d3.v4.js"></script>
-    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script type='text/javascript' src='/d3/d3.min.js'></script>
+    <script type='text/javascript' src='/d3-tip/index.js'></script>
+    <script type='text/javascript' src='/jquery/jquery.min.js'></script>
 </head>
 <body>
 <div class="container">
@@ -33,27 +79,50 @@
         </div>
     </div>
 
-    <div class="text-center"><strong>Select Start and End dates to visualize actions performed in the selected date range.</strong></div>
+    <div class="text-center"><strong>Select Dates, User to visualize and compare actions performed in the selected date range.</strong></div>
     <br>
 
+    <div class="alert alert-danger text-center" role="alert" hidden="true">
+        <strong>Oh snap!</strong> Please fill in all required fields and try again.
+    </div>
+
     <div class="row">
-        <div class="col-xs-4" id="start_date_container">
-            <label for="start_date">Start Date</label>
+        <div class="col-xs-3" id="start_date_container">
+            <label for="start_date">Start Date <span class="requiredField">*</span></label>
             <div class="form-group row">
-                <div class="col-xs-8">
+                <div class="col-xs-10">
                     <input type="date" id="start_date" class="form-control">
                 </div>
             </div>
         </div>
-        <div class="col-xs-4" id="end_date_container">
-            <label for="end_date">End Date</label>
+        <div class="col-xs-3" id="end_date_container">
+            <label for="end_date">End Date <span class="requiredField">*</span></label>
             <div class="form-group row">
-                <div class="col-xs-8">
+                <div class="col-xs-10">
                     <input type="date" id="end_date" class="form-control">
                 </div>
             </div>
         </div>
-        <div class="col-xs-4">
+        <div class="col-xs-3" id="user_selection_container">
+            <label for="user_selection">Select User <span class="requiredField">*</span></label>
+            <div class="form-group row">
+                <div class="col-xs-8">
+                    <select id="user_selection" class="form-control">
+                        <option selected>Choose...</option>
+                        <%  currentUser = user;
+                            users.forEach(function(user) {
+                                var email = user.local.email;
+                                if (email && (email != currentUser.local.email)) {
+                                    %> <option value= <%= email %> ><%= email %></option>
+                                <% }
+                            });
+                        %>
+                        <option value="allUsers">All Users</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="col-xs-3">
             <a class="btn btn-primary" id="update_graphs">Update Graphs</a>
         </div>
     </div>
@@ -69,60 +138,65 @@
     </div>
 
     <script>
+        var user = <%- JSON.stringify(user) %>;
+        var users = <%- JSON.stringify(users) %>;
+
+        var stopWords = null;
+        function processData(data) {
+            stopWords = new Set(data.split(","));
+        }
+
+        function handleResponse() {
+            if(this.status == 200 && this.response != null) {
+                processData(this.response);
+            }
+        }
+
+        var fileReader = new XMLHttpRequest();
+        fileReader.onload = handleResponse;
+        fileReader.open("GET", "/stop_words.txt");
+        fileReader.send();
+
         $(document).ready(function() {
             var startDate = null;
             var endDate = null;
+            var userSelected = null;
 
             $("#update_graphs").click(function() {
                 startDate = new Date($("#start_date").val());
                 startDate.setTime(startDate.getTime() + startDate.getTimezoneOffset() * 60 * 1000);
                 endDate = new Date($("#end_date").val());
                 endDate.setTime(endDate.getTime() + endDate.getTimezoneOffset() * 60 * 1000);
+                userSelected = $("#user_selection").val();
 
-                var user = <%- JSON.stringify(user) %>;
-                var users = <%- JSON.stringify(users) %>;
+                if (startDate == "Invalid Date" || endDate == "Invalid Date" || userSelected == "Choose...") {
+                    $(".alert").attr("hidden", false);
+                    return;
+                }
+
+                $(".alert").attr("hidden", true);
+
+                var actionTags = ["question_click", "star", "share_question", "upvote_on_question", "downvote_on_question",
+                                  "share_answer", "upvote_on_answer", "downvote_on_answer", "tag_click"];
+
+                var actionStrings = ["Quest Clicks", "Quest Stars", "Quest Shares", "Quest Upvotes", "Quest Downvotes",
+                                    "Ans Shares", "Ans Upvotes", "Ans Downvotes", "Tags Clicks"];
 
                 var filteredActions = user.local.actionData.filter(function(item) {
                     var itemDate = new Date(item.date);
                     return (startDate <= itemDate && itemDate <= endDate);
                 });
 
-                var actionTags = ["question_click", "star", "share_question", "upvote_on_question", "downvote_on_question",
-                                  "share_answer", "upvote_on_answer", "downvote_on_answer", "tag_click"];
-
                 var userActionCount = actionTags.map(function(tag) {
                     return getActionCount(filteredActions, tag);
                 });
-                var avgActionCount = Array.apply(null, new Array(actionTags.length)).map(Number.prototype.valueOf, 0);
-                var userCount = 0.0;
 
-                users.forEach(function(user) {
-                    if (user.local.email) {
-                        var filteredActions = user.local.actionData.filter(function(item) {
-                            var itemDate = new Date(item.date);
-                            return (startDate <= itemDate && itemDate <= endDate);
-                        });
-                        for (var i = 0; i < actionTags.length; i++) {
-                            avgActionCount[i] += getActionCount(filteredActions, actionTags[i]);
-                        }
-                        userCount += 1.0;
-                    }
-                });
+                var compActionCount = getUserActionCount(startDate, endDate, userSelected, actionTags);
 
-                avgActionCount = avgActionCount.map(function(total) {
-                    return total / userCount;
-                });
-
-                var barData = "Action,Current User,Avg of All Users\n" +
-                              "Quest Clicks," + userActionCount[0] + "," + avgActionCount[0] + "\n" +
-                              "Quest Stars," + userActionCount[1] + "," + avgActionCount[1] + "\n" +
-                              "Quest Shares," + userActionCount[2] + "," + avgActionCount[2] + "\n" +
-                              "Quest Upvotes," + userActionCount[3] + "," + avgActionCount[3] + "\n" +
-                              "Quest Downvotes," + userActionCount[4] + "," + avgActionCount[4] + "\n" +
-                              "Ans Shares," + userActionCount[5] + "," + avgActionCount[5] + "\n" +
-                              "Ans Upvotes," + userActionCount[6] + "," + avgActionCount[6] + "\n" +
-                              "Ans Downvotes," + userActionCount[7] + "," + avgActionCount[7] + "\n" +
-                              "Tags Clicks," + userActionCount[8] + "," + avgActionCount[8];
+                var barData = "Action,Current user," + getUserName(userSelected);
+                for (var i = 0; i < actionTags.length; i++) {
+                    barData += "\n" + actionStrings[i] + "," + userActionCount[i] + "," + compActionCount[i];
+                }
 
                 var wordDict = {};
 
@@ -141,7 +215,7 @@
                 })).forEach(function(question) {
                     var arr = question.split("/");
                     arr[arr.length - 1].split("-").filter(function(word) {
-                        return word.length > 3;
+                        return !stopWords.has(word);
                     }).forEach(function(tag) {
                         if (tag in wordDict) {
                             wordDict[tag] += 1;
@@ -159,10 +233,10 @@
                 }
 
                 displayBarChart(barData);
-                $("#bar_text").text("The above chart shows various actions performed by the user relative to all other users for the selected date range.");
+                $("#bar_text").text("The above chart shows various actions performed by the current user relative to the selected user for the given date range.");
 
                 displayBubbleChart(bubbleData);
-                $("#bubble_text").text("The above chart displays tags and words most frequently used by the user in the selected date range.");
+                $("#bubble_text").text("The above chart displays tags and words most frequently used by the current user in the selected date range.");
             });
         });
 
@@ -176,10 +250,56 @@
             return getActions(filteredActions, type).length;
         };
 
+        function getUserActionCount(startDate, endDate, userSelected, actionTags) {
+            if (userSelected == "allUsers") {
+                var avgActionCount = Array.apply(null, new Array(actionTags.length)).map(Number.prototype.valueOf, 0);
+                var userCount = 0.0;
+
+                users.forEach(function(user) {
+                    if (user.local.email) {
+                        var filteredActions = user.local.actionData.filter(function(item) {
+                            var itemDate = new Date(item.date);
+                            return (startDate <= itemDate && itemDate <= endDate);
+                        });
+                        for (var i = 0; i < actionTags.length; i++) {
+                            avgActionCount[i] += getActionCount(filteredActions, actionTags[i]);
+                        }
+                        userCount += 1.0;
+                    }
+                });
+
+                return avgActionCount.map(function(total) {
+                    return total / userCount;
+                });
+            } else {
+                var user = users.filter(function(user) {
+                    var email = user.local.email;
+                    return email && (email == userSelected);
+                })[0];
+
+                var filteredActions = user.local.actionData.filter(function(item) {
+                    var itemDate = new Date(item.date);
+                    return (startDate <= itemDate && itemDate <= endDate);
+                });
+
+                return actionTags.map(function(tag) {
+                    return getActionCount(filteredActions, tag);
+                });
+            }
+        }
+
+        function getUserName(userSelected) {
+            if (userSelected == "allUsers") {
+                return "Avg of all users";
+            } else {
+                return "User " + userSelected;
+            }
+        }
+
         function displayBarChart(csvData) {
             d3.selectAll("#bar_chart > *").remove();
 
-            var margin = {top: 20, right: 20, bottom: 30, left: 100},
+            var margin = {top: 50, right: 20, bottom: 30, left: 130},
                 width = 1000 - margin.left - margin.right,
                 height = 500 - margin.top - margin.bottom;
 
@@ -202,7 +322,7 @@
                 .rangeRound([height, 0]);
 
             var z = d3.scaleOrdinal()
-                .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
+                .range(["#6b486b", "#a05d56", "#98abc5", "#8a89a6", "#7b6888", "#d0743c", "#ff8c00"]);
 
             var data = d3.csvParse(csvData, function(d, i, columns) {
               for (var i = 1, n = columns.length; i < n; ++i) d[columns[i]] = +d[columns[i]];
@@ -215,6 +335,9 @@
             x1.domain(keys).rangeRound([0, x0.bandwidth()]);
             y.domain([0, d3.max(data, function(d) { return d3.max(keys, function(key) { return d[key]; }); })]).nice();
 
+            tip = d3.tip().attr('class', 'd3-tip').html(function(d) { return d["key"] + ", Value: " + d["value"]; });
+            barChart.call(tip)
+
             g.append("g")
               .selectAll("g")
               .data(data)
@@ -223,37 +346,43 @@
               .selectAll("rect")
               .data(function(d) { return keys.map(function(key) { return {key: key, value: d[key]}; }); })
               .enter().append("rect")
+                .attr("class", "bar")
                 .attr("x", function(d) { return x1(d.key); })
                 .attr("y", function(d) { return y(d.value); })
                 .attr("width", x1.bandwidth())
                 .attr("height", function(d) { return height - y(d.value); })
-                .attr("fill", function(d) { return z(d.key); });
+                .attr("fill", function(d) { return z(d.key); })
+                .on('mouseover', tip.show)
+                .on('mouseout', tip.hide);
 
             g.append("g")
                 .attr("class", "axis")
                 .attr("transform", "translate(0," + height + ")")
-                .call(d3.axisBottom(x0));
+                .call(d3.axisBottom(x0))
+                .attr("font-size", 12);
 
             g.append("g")
                 .attr("class", "axis")
                 .call(d3.axisLeft(y).ticks(null, "s"))
+                .attr("font-size", 14)
               .append("text")
                 .attr("x", 2)
-                .attr("y", y(y.ticks().pop()) - 15)
+                .attr("y", y(y.ticks().pop()) - 14)
                 .attr("dy", "0.32em")
                 .attr("fill", "#000")
                 .attr("font-weight", "bold")
+                .attr("font-size", 14)
                 .attr("text-anchor", "end")
                 .text("Action Count");
 
             var legend = g.append("g")
                 .attr("font-family", "sans-serif")
-                .attr("font-size", 10)
+                .attr("font-size", 14)
                 .attr("text-anchor", "end")
               .selectAll("g")
               .data(keys.slice().reverse())
               .enter().append("g")
-                .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+                .attr("transform", function(d, i) { return "translate(" + (i * - 150) + ", 0)"; });
 
             legend.append("rect")
                 .attr("x", width)
@@ -300,24 +429,30 @@
             var root = d3.hierarchy({children: classes})
                 .sum(function(d) { return d.value; })
                 .each(function(d) {
-                  if (id = d.data.id) {
-                    var id, i = id.lastIndexOf(".");
-                    d.id = id;
-                    d.package = id.slice(0, i);
-                    d.class = id.slice(i + 1);
-                  }
+                    if (id = d.data.id) {
+                        var id, i = id.lastIndexOf(".");
+                        d.id = id;
+                        d.package = id.slice(0, i);
+                        d.class = id.slice(i + 1);
+                    }
                 });
 
             var node = bubbleChart.selectAll(".node")
               .data(pack(root).leaves())
               .enter().append("g")
                 .attr("class", "node")
-                .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+                .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+
+            tip = d3.tip().attr('class', 'd3-tip').html(function(d) { return "Occurances: " + d["value"]; });
+            bubbleChart.call(tip)
 
             node.append("circle")
+                .attr("class", "bubble")
                 .attr("id", function(d) { return d.id; })
                 .attr("r", function(d) { return d.r; })
-                .style("fill", function(d) { return color(d.package); });
+                .attr("fill", function(d) { return color(d.package); })
+                .on('mouseover', tip.show)
+                .on('mouseout', tip.hide);
 
             node.append("clipPath")
                 .attr("id", function(d) { return "clip-" + d.id; })
@@ -332,9 +467,6 @@
                 .attr("x", 0)
                 .attr("y", function(d, i, nodes) { return 13 + (i - nodes.length / 2 - 0.5) * 10; })
                 .text(function(d) { return d; });
-
-            node.append("title")
-                .text(function(d) { return d.id + "\n" + format(d.value); });
         }
     </script>
 

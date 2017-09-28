@@ -33,6 +33,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
 
+var path = require('path');
+app.use(express.static(path.resolve('./public')));
+
 require('./app/routes.js')(app, passport);
 
 app.listen(port);
