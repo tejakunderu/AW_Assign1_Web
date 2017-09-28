@@ -6,6 +6,8 @@ Date.prototype.timeNow = function () {
     return ((this.getHours() < 10)?"0":"") + this.getHours() +":"+ ((this.getMinutes() < 10)?"0":"") + this.getMinutes() +":"+ ((this.getSeconds() < 10)?"0":"") + this.getSeconds();
 }
 
+var User = require('./models/user');
+
 module.exports = function(app, passport) {
 
     app.get('/', inSession, function(req, res) {
@@ -15,6 +17,15 @@ module.exports = function(app, passport) {
     app.get('/profile', isLoggedIn, function(req, res) {
         res.render('profile.ejs', {
             user : req.user
+        });
+    });
+
+    app.get('/visualize', isLoggedIn, function(req, res) {
+        User.find({}, function(err, users) {
+            res.render('visualize.ejs', {
+                user : req.user,
+                users: users
+            });
         });
     });
 
@@ -53,12 +64,7 @@ module.exports = function(app, passport) {
 
     app.get('/remove', function(req, res) {
         if(req.user) {
-            var user = req.user;
-            user.local.email = undefined;
-            user.local.password = undefined;
-            user.local.loginHistory = undefined;
-            user.local.actions = undefined;
-            user.save(function(err) {
+            User.findOneAndRemove({ 'local.email' :  req.user.local.email }, function(err) {
                 res.redirect('/logout');
             });
         } else {
@@ -70,7 +76,9 @@ module.exports = function(app, passport) {
         if(req.user) {
             var user = req.user;
             if (req.body) {
-                user.local.actions.push(logActions(req.body));
+                var action = req.body;
+                user.local.actions.push(logActions(action));
+                user.local.actionData.push(logActionData(action));
             }
             user.save();
         }
@@ -128,4 +136,10 @@ function logActions(action) {
         case "scroll":
             return datetime + "Scrolled on: <a href=\"" + action["content"] + "\" target=\"_blank\">" +  action["content"] + "</a>";
     }
+}
+
+function logActionData(action) {
+    action["date"] = new Date();
+    delete action["id"];
+    return action;
 }
