@@ -21,7 +21,7 @@
             padding-left: 50px;
         }
 
-        #update_graphs {
+        #generate_graphs {
             margin-top: 23px;
         }
 
@@ -123,16 +123,18 @@
             </div>
         </div>
         <div class="col-xs-3">
-            <a class="btn btn-primary" id="update_graphs">Update Graphs</a>
+            <a class="btn btn-primary" id="generate_graphs">Generate Graphs</a>
         </div>
     </div>
 
     <div class="well">
+        <strong>Activity bar chart</strong>
         <div id="bar_chart"></div>
         <br>
         <p class="text-center" id="bar_text"></p>
     </div>
     <div class="well" >
+        <strong>Key word bubble chart</strong>
         <div id="bubble_chart"></div>
         <p class="text-center" id="bubble_text"></p>
     </div>
@@ -162,7 +164,7 @@
             var endDate = null;
             var userSelected = null;
 
-            $("#update_graphs").click(function() {
+            $("#generate_graphs").click(function() {
                 startDate = new Date($("#start_date").val());
                 startDate.setTime(startDate.getTime() + startDate.getTimezoneOffset() * 60 * 1000);
                 endDate = new Date($("#end_date").val());
@@ -471,33 +473,81 @@
     </script>
 
     <div class="well">
-        <!-- <strong>Why do you decide to log these actions?</strong>
-        <ol>
+        <p><strong>Analysis and Findings</strong></p>
+        <br>
+        <p><strong>Activity bar chart -</strong></p>
+        <p>This chart shows the activity count of the user for each action in comparision to other users.
+          The chart only shows actions performed in the selected date range for comparison.
+          Specific users or all users can be selected for comparison.
+        </p>
+        <ul>
             <li>
-                <strong>Questions Clicked</strong>:
-                These could be used to identify the types of questions the user might be interested in.
+                <strong>Analysis</strong>:
+                The user's entire action data is used.
+                This data is filtered accoring to the selected date range and sorted according to type of action.
+                The count of each action type is then shown against that of the selected user group.
             </li>
             <li>
-                <strong>Tags Clicked</strong>:
-                These can help us identify broader collections of questions / specific topics that the user might be interested in.
+                <strong>Finding 1</strong>:
+                Activity levels of the user for specific time range can be found and immediately compared to the average of all users.
+                This is very useful in determining usage patterns.
             </li>
             <li>
-                <strong>Questions Starred / Un-starred</strong>:
-                These can give us further and a much stronger indication of the user's interest in a paticular question / topic.
+                <strong>Finding 2</strong>:
+                Higher activity in specific areas like Question related actions can indicate interest.
+                More questions that are similar to or fit the user's topic interests can be recommended and can help the user find the answers needed.
             </li>
             <li>
-                <strong>Content Shared</strong>:
-                The content shared by the user is another strong indicator of interest and could be used to suggest similar content.
+                <strong>Finding 3</strong>:
+                Higher activity in areas like Answers indicate knowledge gained in the topic.
+                Can be used to recommend related questions for the user to answer.
+            </li>
+        </ul>
+
+        <br>
+
+        <p><strong>Keyword bubble chart -</strong></p>
+        <p>This chart shows the keywords found from the user's activity like tag and question clicks.
+          The chart only shows words found in the activity data for the selected date range.
+        </p>
+        <ul>
+            <li>
+                <strong>Analysis</strong>:
+                All words extracted from the questions and tags the user interacted with are processed.
+                Stop words and words that occur less frequently are removed from the data.
+                All words are then displayed with sizes varying according to number of occurances.
             </li>
             <li>
-                <strong>UpVotes and DownVotes</strong>:
-                These can help us determine the user's activity levels and also the performance of the content presented on our site.
+                <strong>Finding 1</strong>:
+                The chart directly shows extensively used keywords that indicate strong interest in specific topics.
+                This can be used to recommend similar topics, questions related to topic, other questions that have similar keywords etc.
             </li>
             <li>
-                <strong>Scrolling</strong>:
-                This can help us analyze the user's behaviour by logging how long and how deep the user is scrolling.
+                <strong>Finding 2</strong>:
+                User's interests vary with time and these patterns can be accurately determined as we can generate the keywords for any given date range.
+                Long term and short term interests can be revealed.
             </li>
-        </ol> -->
+        </ul>
+
+        <br>
+
+        <p><strong>Interactions -</strong></p>
+        <ul>
+            <li>
+                <strong>Start, End Dates</strong>:
+                Select start and end dates to visualize data from the specified date range.
+            </li>
+            <li>
+                <strong>User selection</strong>:
+                Select any specific user to compare activity with.
+                Selecting all users shows average activity count over the entire user group.
+            </li>
+            <li>
+                <strong>Hover</strong>:
+                Hovering over the bars in the bar graph shows the user type and number of actions.
+                Hovering over the bubbles in the bubble chart displays the number of occurances for the specific keyword.
+            </li>
+        </ul>
     </div>
 
 </div>
